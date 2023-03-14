@@ -114,13 +114,15 @@ class Backend extends App
 
     protected function category_url($url)
     {
-        $url = str_replace(' ', '-', $url);
+        $url = str_replace(' ', '-', strtolower($url));
         $find_url = $this->connect->prepare("SELECT id,url FROM categories WHERE url=:url");
         $find_url->bindParam(':url', $url, PDO::PARAM_STR);
         $find_url->execute();
         $count_url = $find_url->fetchAll();
         if (count($count_url) >= 1) {
-            $url = $url . '-' . count($count_url);
+            $t_url = $this->connect->prepare("SELECT id,url FROM categories");
+            $t_url->execute();
+            $url = $url . '-' . count($t_url->fetchAll());
         }
         return $url;
     }
@@ -137,23 +139,28 @@ class Backend extends App
             $dir = $_SERVER['DOCUMENT_ROOT'] . '/public/' . 'image/category/' . $path;
             move_uploaded_file($_FILES['category_image']['tmp_name'], $dir);
         } else {
-            $dir = null;
+            $path = null;
         }
-        $name = $request->category_name;
-        $url = $this->category_url($request->category_name);
-        $status = $request->category_status;
+        if(strlen($request->category_name) >= 1){
+            $name = $request->category_name;
+            $url = $this->category_url($request->category_name);
+            $status = $request->category_status;
 
 
-        $categories = $this->connect->prepare("INSERT INTO categories(name,url,status,added_by) VALUES(:name,:url,:status,:added_by)");
-        $categories->bindParam(':name', $name, PDO::PARAM_STR);
-
-        $categories->bindParam(':status', $status, PDO::PARAM_INT);
-        $categories->bindParam(':url', $url, PDO::PARAM_STR);
-        $categories->bindParam(':added_by', $this->admin_id, PDO::PARAM_INT);
-        if ($categories->execute()) {
-
-        } else {
-
+            $categories = $this->connect->prepare("INSERT INTO categories(name,url,category_image,status,added_by) VALUES(:name,:url,:category_image,:status,:added_by)");
+            $categories->bindParam(':name', $name, PDO::PARAM_STR);
+            $categories->bindParam(':url', $url, PDO::PARAM_STR);
+            $categories->bindParam(':category_image',$path,PDO::PARAM_STR);
+            $categories->bindParam(':status', $status, PDO::PARAM_INT);
+            $categories->bindParam(':added_by', $this->admin_id, PDO::PARAM_INT);
+            if ($categories->execute()) {
+                echo json_encode(['success'=>$this->success('Category Successfully Saved')]);
+            } else {
+                echo json_encode(['error'=>$this->error()]);
+            }
+        }else{
+            echo json_encode(['error'=>$this->error('Category Name is required')]);
         }
+        return null;
     }
 }

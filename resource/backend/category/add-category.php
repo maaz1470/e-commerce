@@ -76,15 +76,23 @@
     let category_image = document.getElementById('category_image');
     let preview = document.getElementById('preview_image');
 
-    preview.src = "<?php $app->asset('/image/preview.png'); ?>";
+    const default_image = '<?php $app->asset('/image/preview.png'); ?>';
+
+
+    preview.src = default_image;
+
     category_image.addEventListener('change',(e) => {
-        preview.src = e.target.files[0] ? URL.createObjectURL(e.target.files[0]) : '<?php $app->asset('/image/preview.png'); ?>'
+        preview.src = e.target.files[0] ? URL.createObjectURL(e.target.files[0]) : default_image
     })
     form.addEventListener('submit',function(e){
         e.preventDefault();
 
         var formData = new FormData(this);
-
+        toastr.options = {
+            'postionClass': 'toast-bottom-right',
+            'progressBar': true,
+            'debug': false
+        }
         $.ajax({
             xhr: function(){
                 var xhr = new window.XMLHttpRequest();
@@ -101,8 +109,21 @@
             contentType: false,
             processData: false,
             data: formData,
-            success: function (response){
-                console.log(response)
+            success: function (msg){
+                const response = JSON.parse(msg);
+                if($.isEmptyObject(response.error)){
+                    Swal.fire(
+                        'success',
+                        response.success,
+                        'success'
+                    )
+                    
+                    preview.src = default_image;
+
+                    form.reset()
+                }else{
+                    toastr.error(response.error)
+                }
             },
             error: function(error){
                 console.log(error)
